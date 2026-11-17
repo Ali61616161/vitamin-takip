@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitamin Takip</title>
+<meta name="theme-color" content="#2f7d57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vitamin">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+/* Layout: tek sütun, telefon odaklı. Uyarılar ve bugünün listesi üstte, yönetim ve ekleme altta. */
+:root{
+  --bg:#f4f6f1; --card:#ffffff; --ink:#1d2a22; --mute:#66756b; --line:#e0e6dc;
+  --accent:#2f7d57; --accent-ink:#ffffff; --ok-soft:#dff0e5;
+  --bad:#b42318; --bad-soft:#fde7e4; --soft:#92600a; --soft-soft:#fdf1d6;
+  --display:'Fraunces',Georgia,serif; --body:'Figtree',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121a15; --card:#1a251e; --ink:#e7efe9; --mute:#93a498; --line:#2a382e;
+  --accent:#5bbf8a; --accent-ink:#0d1a12; --ok-soft:#1f3a2a;
+  --bad:#ff8a7a; --bad-soft:#3d1d19; --soft:#f2c46b; --soft-soft:#3a2f14; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#121a15; --card:#1a251e; --ink:#e7efe9; --mute:#93a498; --line:#2a382e;
+  --accent:#5bbf8a; --accent-ink:#0d1a12; --ok-soft:#1f3a2a;
+  --bad:#ff8a7a; --bad-soft:#3d1d19; --soft:#f2c46b; --soft-soft:#3a2f14; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-text-size-adjust:100%}
+main{max-width:520px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
+h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;font-weight:600}
+.cover{display:flex;align-items:center;gap:14px;padding:6px 0 2px}
+.logo{flex:none;border-radius:16px;box-shadow:0 6px 16px rgba(47,125,87,.28)}
+.date{color:var(--mute);font-size:14px;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.summary{display:flex;gap:16px;align-items:center}
+.ring{position:relative;width:76px;height:76px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:17px;font-variant-numeric:tabular-nums}
+.sum-text{display:flex;flex-direction:column;gap:2px}
+.sum-text strong{font-size:18px}
+.sum-text span{color:var(--mute);font-size:14px}
+.slot{margin-top:14px}
+.slot:first-of-type{margin-top:0}
+.slot-name{font-size:13px;font-weight:600;color:var(--mute);margin-bottom:2px}
+.item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-top:6px;background:var(--bg);cursor:pointer;min-height:56px}
+.item.done{background:var(--ok-soft);border-color:transparent}
+.item.done .nm{text-decoration:line-through;opacity:.7}
+.chk{width:26px;height:26px;border-radius:50%;border:2px solid var(--mute);flex:none;display:grid;place-items:center;color:transparent}
+.item.done .chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nm{font-weight:600}
+.meta{color:var(--mute);font-size:13px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.grow{flex:1;min-width:0}
+.time{font-size:13px;font-variant-numeric:tabular-nums;color:var(--mute);flex:none}
+.time.late{color:var(--bad);font-weight:700}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--ink);background:var(--card)}
+.b-fat,.b-meal{border-color:var(--accent)}
+.b-empty{border-style:dashed;border-color:var(--ink)}
+.warn{display:flex;gap:10px;padding:10px 12px;border-radius:12px;margin-top:8px;font-size:14px;line-height:1.4}
+.warn:first-of-type{margin-top:0}
+.warn.bad{background:var(--bad-soft);color:var(--bad)}
+.warn.soft{background:var(--soft-soft);color:var(--soft)}
+.warn.good,.warn.info{background:var(--ok-soft);color:var(--ink)}
+.warn b{flex:none}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.bar{width:100%;height:56px;background:var(--bg);border-radius:8px;display:flex;align-items:flex-end;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;width:100%;background:var(--accent)}
+.day.today{color:var(--ink);font-weight:700}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:12px 16px;font-weight:600;min-height:46px;width:100%}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.ghost.danger{color:var(--bad);border-color:var(--bad)}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:8px 14px;min-height:40px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.panel{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 0 14px}
+.panel .full{grid-column:1/-1}
+.note{font-size:13px;color:var(--mute);line-height:1.45}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px;min-height:46px;width:100%}
+.check{flex-direction:row;align-items:center;gap:10px;font-size:15px;color:var(--ink)}
+.check input{width:22px;min-height:22px;height:22px}
+.toast{display:flex;gap:10px;align-items:center;background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:12px 14px;font-weight:600}
+.toast button{background:transparent;border:1px solid currentColor;border-radius:10px;padding:6px 12px;min-height:36px}
+.empty{color:var(--mute);font-size:14px}
+[hidden]{display:none!important}
+:is(.item,button,input,select):focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.item,.bar i{transition:background .2s,height .3s}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<main>
+  <div id="toasts"></div>
+  <header class="cover">
+    <svg class="logo" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><rect width="64" height="64" rx="16" fill="var(--accent)"/><g transform="rotate(-35 32 32)"><rect x="14" y="22" width="36" height="20" rx="10" fill="#fff"/><path d="M32 22h8a10 10 0 0 1 0 20h-8z" fill="#bfe6cf"/></g><circle cx="49" cy="15" r="3.5" fill="#fff" opacity=".9"/></svg>
+    <div><h1>Vitaminlerim</h1><div class="date" id="date"></div></div>
+  </header>
+
+  <section class="card summary" aria-label="Bugünün özeti">
+    <div class="ring"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="32" fill="none" stroke="var(--line)" stroke-width="8"/><circle id="arc" cx="38" cy="38" r="32" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="201.06" stroke-dashoffset="201.06"/></svg><b id="pct">0%</b></div>
+    <div class="sum-text"><strong id="sumMain">-</strong><span id="sumSub">-</span></div>
+  </section>
+
+  <section class="card" id="warnCard" hidden aria-label="Uyarılar"><h2>Uyarılar</h2><div id="warns"></div></section>
+
+  <section class="card" aria-label="Bugün"><h2>Bugün</h2><div id="today"></div></section>
+
+  <section class="card" aria-label="Son 7 gün"><h2>Son 7 gün</h2><div class="week" id="week"></div></section>
+
+  <section class="card" aria-label="Vitaminlerim"><h2>Vitaminlerim</h2><div id="manage"></div></section>
+
+  <section class="card" aria-label="Vitamin ekle">
+    <h2>Vitamin ekle</h2>
+    <label for="q">Vitamin, mineral veya bitki ara<input id="q" autocomplete="off" placeholder="Örn. ginseng, magnezyum, D3"></label>
+    <div class="chips" id="sugg"></div>
+    <div id="draft" hidden style="margin-top:14px">
+      <div style="font-weight:700;font-size:18px" id="dName"></div>
+      <div id="dInfo" style="margin-top:8px"></div>
+      <div id="dWarn" style="margin-top:8px"></div>
+      <div class="panel" style="padding-top:12px">
+        <label for="dSlot">Zaman
+          <select id="dSlot"><option value="sabah">Sabah</option><option value="ogle">Öğle</option><option value="aksam">Akşam</option><option value="gece">Yatmadan önce</option><option value="ozel">Özel saat</option></select>
+        </label>
+        <label for="dTime" id="dTimeWrap" hidden>Saat<input id="dTime" type="time" value="09:00"></label>
+        <label for="dDose">Doz (isteğe bağlı)<input id="dDose" maxlength="30" placeholder="1 kapsül"></label>
+        <label for="dFood" id="dFoodWrap" hidden>Nasıl alınır
+          <select id="dFood"><option value="any">Fark etmez</option><option value="meal">Yemekle</option><option value="empty">Aç karnına</option></select>
+        </label>
+        <label for="dOn">Kullan (gün)<input id="dOn" type="number" min="1" inputmode="numeric" placeholder="Süresiz"></label>
+        <label for="dOff">Ara ver (gün)<input id="dOff" type="number" min="1" inputmode="numeric" placeholder="-"></label>
+        <button class="btn full" id="dAdd" type="button">Ekle</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Ayarlar">
+    <h2>Hatırlatıcılar</h2>
+    <label class="check" for="sRemind"><input type="checkbox" id="sRemind"> Zamanı gelince bildir</label>
+    <p class="note">Bildirim sadece bu sayfa açıkken çalışır. Sayfa kapalıyken telefona hatırlatma göndermek için gerçek bir mobil uygulama gerekir.</p>
+    <div class="panel" style="padding-bottom:0">
+      <label for="tsabah">Sabah<input id="tsabah" type="time"></label>
+      <label for="togle">Öğle<input id="togle" type="time"></label>
+      <label for="taksam">Akşam<input id="taksam" type="time"></label>
+      <label for="tgece">Yatmadan önce<input id="tgece" type="time"></label>
+    </div>
+  </section>
+
+  <p class="note">Bilgiler genel bilgilendirme amaçlıdır. Düzenli ilaç kullanıyorsan, hamileysen veya emziriyorsan eczacına ya da doktoruna danış.</p>
+</main>
+
+<script>
+/* ---------- Bilgi veritabanı ----------
+ k:anahtar n:ad a:arama f:alım şekli fn:not s:önerilen zaman c:[kullan,ara gün] w:uyarı tip:ipucu eve:akşam alma night:sadece gece */
+const DB=[
+{k:'vitd',n:'D3 Vitamini',a:'d vitamini d3 kolekalsiferol',f:'fat',fn:'Yağ içeren öğünle emilimi artar',s:'sabah',tip:'K2 ile birlikte alınabilir'},
+{k:'vitk2',n:'K2 Vitamini',a:'k vitamini k2 menakinon',f:'fat',fn:'Yağ içeren öğünle al',s:'sabah',w:'Kan sulandırıcı (varfarin) kullanıyorsan doktoruna danış'},
+{k:'vita',n:'A Vitamini',a:'a vitamini retinol',f:'fat',fn:'Yağ içeren öğünle al',s:'sabah',w:'Yüksek dozda vücutta birikir, dozu aşma'},
+{k:'vite',n:'E Vitamini',a:'e vitamini tokoferol',f:'fat',fn:'Yağ içeren öğünle al',s:'ogle',w:'Yüksek dozda kan sulandırıcı etkiyi artırabilir'},
+{k:'vitc',n:'C Vitamini',a:'c vitamini askorbik asit',f:'any',fn:'Mide hassasiyetinde yemekle al',s:'sabah',tip:'Demirin emilimini artırır'},
+{k:'bcomp',n:'B Kompleks',a:'b kompleks b vitamini',f:'meal',fn:'Yemekle veya sonrasında al, boş mideyi bulandırabilir',s:'sabah',eve:1},
+{k:'b12',n:'B12 Vitamini',a:'b12 kobalamin',f:'any',fn:'Sabah almak tercih edilir',s:'sabah',eve:1},
+{k:'b6',n:'B6 Vitamini',a:'b6 piridoksin',f:'any',fn:'Fark etmez',s:'sabah',w:'Uzun süre yüksek dozda sinir hasarı yapabilir'},
+{k:'folat',n:'Folat (B9)',a:'folat folik asit b9',f:'any',fn:'Fark etmez',s:'sabah'},
+{k:'biotin',n:'Biotin',a:'biotin b7 saç tırnak',f:'any',fn:'Fark etmez',s:'sabah',w:'Kan tahlilinden önce kullanıp kullanmayacağını doktoruna sor, sonuçları etkileyebilir'},
+{k:'iron',n:'Demir',a:'demir iron ferro',f:'empty',fn:'Aç karnına ve C vitaminiyle iyi emilir, mide bulanırsa az yemekle al',s:'sabah',w:'Kahve ve çayı alımdan 2 saat önce ve sonra içme'},
+{k:'calcium',n:'Kalsiyum',a:'kalsiyum calcium',f:'meal',fn:'Karbonat formu yemekle emilir',s:'aksam'},
+{k:'mag',n:'Magnezyum',a:'magnezyum magnesium',f:'any',fn:'Mide hassasiyetinde yemekle al',s:'gece',tip:'Akşam almak uykuya yardımcı olabilir'},
+{k:'zinc',n:'Çinko',a:'cinko zinc',f:'meal',fn:'Boş mideyi bulandırır, yemekle al',s:'aksam',w:'Uzun süre yüksek dozda bakır eksikliği yapabilir'},
+{k:'selen',n:'Selenyum',a:'selenyum selenium',f:'meal',fn:'Yemekle al',s:'sabah',w:'Yüksek dozdan kaçın'},
+{k:'omega3',n:'Omega-3 (Balık Yağı)',a:'omega 3 balik yagi epa dha',f:'fat',fn:'Yağlı yemekle al, geğirme yapmaz',s:'ogle'},
+{k:'coq10',n:'Koenzim Q10',a:'coq10 q10 koenzim',f:'fat',fn:'Yağ içeren öğünle al',s:'sabah',eve:1},
+{k:'probio',n:'Probiyotik',a:'probiyotik probiotic',f:'empty',fn:'Genelde aç karnına veya yemekten önce, ürün etiketine bak',s:'sabah',w:'Antibiyotik kullanıyorsan arasına 2 saat bırak'},
+{k:'multi',n:'Multivitamin',a:'multivitamin multi',f:'meal',fn:'Yemekle al',s:'sabah'},
+{k:'collagen',n:'Kolajen',a:'kolajen collagen',f:'any',fn:'Fark etmez',s:'sabah',tip:'C vitaminiyle birlikte alınabilir'},
+{k:'gluco',n:'Glukozamin',a:'glukozamin glucosamine eklem',f:'meal',fn:'Yemekle al',s:'ogle'},
+{k:'lutein',n:'Lutein',a:'lutein goz',f:'fat',fn:'Yağ içeren öğünle al',s:'ogle'},
+{k:'creatine',n:'Kreatin',a:'kreatin creatine',f:'any',fn:'Fark etmez, bol su iç',s:'sabah'},
+{k:'melatonin',n:'Melatonin',a:'melatonin uyku',f:'empty',fn:'Yatmadan 30-60 dk önce al',s:'gece',night:1},
+{k:'valerian',n:'Valerian (Kediotu)',a:'valerian kediotu',f:'any',fn:'Yatmadan önce al',s:'gece',night:1},
+{k:'theanine',n:'L-Theanine',a:'l theanine teanin',f:'any',fn:'Fark etmez',s:'ogle'},
+{k:'ginseng',n:'Ginseng (Panax)',a:'ginseng panax',f:'any',fn:'Sabah al, yemekle ya da yemeksiz',s:'sabah',c:[21,7],eve:1,w:'Kan şekeri, tansiyon ilacı ve kan sulandırıcıyla etkileşebilir'},
+{k:'rhodiola',n:'Rhodiola',a:'rhodiola rodiola',f:'empty',fn:'Sabah kahvaltıdan önce, aç karnına',s:'sabah',c:[28,7],eve:1,w:'Akşam almak uykusuzluk yapabilir'},
+{k:'ashwa',n:'Ashwagandha',a:'ashwagandha ashvagandha',f:'meal',fn:'Yemekle al',s:'aksam',c:[56,14],w:'Tiroid, sakinleştirici, şeker ve tansiyon ilacı kullanıyorsan doktoruna danış'},
+{k:'maca',n:'Maca',a:'maca',f:'any',fn:'Sabah al',s:'sabah',eve:1},
+{k:'lion',n:'Aslan Yelesi Mantarı',a:'aslan yelesi lions mane mantar',f:'any',fn:'Fark etmez',s:'sabah'},
+{k:'echi',n:'Ekinezya',a:'ekinezya echinacea',f:'any',fn:'Fark etmez',s:'sabah',c:[14,7]},
+{k:'sjw',n:'Sarı Kantaron',a:'sari kantaron st john wort',f:'meal',fn:'Yemekle al',s:'sabah',w:'Doğum kontrol, antidepresan, kan sulandırıcı dahil birçok ilacın etkisini bozar. İlaç kullanıyorsan doktoruna sor'},
+{k:'turmeric',n:'Zerdeçal / Kurkumin',a:'zerdecal kurkumin curcumin turmeric',f:'fat',fn:'Yağlı yemekle ve karabiberle alınca emilimi artar',s:'ogle',w:'Safra taşı veya kan sulandırıcı kullanıyorsan doktoruna danış'},
+{k:'ginkgo',n:'Ginkgo Biloba',a:'ginkgo biloba',f:'any',fn:'Fark etmez',s:'sabah',w:'Kanamayı artırabilir, kan sulandırıcıyla ve ameliyattan önce kullanma'},
+{k:'greentea',n:'Yeşil Çay Ekstresi',a:'yesil cay ekstresi green tea egcg',f:'meal',fn:'Boş mideye alma, karaciğeri yorabilir',s:'sabah',eve:1}
+];
+const DBK={};DB.forEach(d=>DBK[d.k]=d);
+/* Aynı saatte alınmamalı: [a,b,min dakika ara,neden] */
+const SEP=[
+['iron','calcium',120,'Kalsiyum demir emilimini düşürür'],
+['iron','zinc',120,'Demir ve çinko birbirinin emilimini azaltır'],
+['iron','mag',120,'Magnezyum demir emilimini azaltabilir'],
+['iron','greentea',120,'Yeşil çay demir emilimini ciddi azaltır'],
+['zinc','calcium',120,'Kalsiyum çinko emilimini azaltır'],
+['zinc','mag',120,'Yüksek dozda birbirinin emilimini azaltabilir'],
+['calcium','mag',120,'Birlikte alınınca emilim düşebilir']
+];
+/* Birlikte dikkat */
+const SOFT=[
+['ginseng','rhodiola','Uyarıcı etkiler toplanır, çarpıntı ve huzursuzluk yapabilir'],
+['ginseng','greentea','Uyarıcı etkiler toplanır'],
+['rhodiola','greentea','Uyarıcı etkiler toplanır'],
+['melatonin','valerian','Sakinleştirici etkiler toplanır'],
+['melatonin','ashwa','Uyku hali artabilir'],
+['omega3','ginkgo','Kanamaya yatkınlık artabilir'],
+['ginkgo','vite','Kanamaya yatkınlık artabilir'],
+['omega3','vite','Yüksek dozda kan sulandırıcı etki birikebilir']
+];
+/* İyi eşleşme */
+const GOOD=[['iron','vitc','C vitamini demir emilimini artırır'],['vitd','vitk2','D3 ve K2 birlikte iyi çalışır'],['collagen','vitc','C vitamini kolajen sentezini destekler']];
+const FOOD={fat:['Yağlı yemekle','b-fat'],meal:['Yemekle','b-meal'],empty:['Aç karnına','b-empty'],any:['Fark etmez','b-any']};
+const SLOTS=[['sabah','Sabah'],['ogle','Öğle'],['aksam','Akşam'],['gece','Yatmadan önce'],['ozel','Özel saat']];
+
+/* ---------- Yardımcılar ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s).toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parseYmd=s=>{const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])};
+const todayKey=()=>ymd(new Date());
+const toMin=t=>{const p=(t||'00:00').split(':');return +p[0]*60+ +p[1]};
+const hm=d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+
+const KEY='vitamin-takip-v2';
+const DEF={items:[],log:{},nextId:1,fired:{},settings:{remind:false,times:{sabah:'08:00',ogle:'13:00',aksam:'19:00',gece:'22:30'}}};
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S||!S.items)S=JSON.parse(JSON.stringify(DEF));
+S.settings=S.settings||DEF.settings;S.fired=S.fired||{};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const info=it=>{const d=it.key&&DBK[it.key];return d?d:{f:it.food||'any',fn:'',eve:0,night:0}};
+const timeOf=it=>it.slot==='ozel'?(it.time||'09:00'):S.settings.times[it.slot];
+const isDone=(day,id)=>!!(S.log[day]&&S.log[day][id]);
+
+function phase(it){
+  if(!it.cyc||!it.cyc.on||!it.cyc.off)return{active:true};
+  const days=Math.round((parseYmd(todayKey())-parseYmd(it.cyc.start))/864e5);
+  if(days<0)return{active:true};
+  const len=it.cyc.on+it.cyc.off,idx=days%len;
+  return idx<it.cyc.on?{active:true,left:it.cyc.on-idx}:{active:false,back:len-idx};
+}
+
+/* ---------- Uyarı motoru ---------- */
+function analyze(items){
+  const out=[],act=items.filter(i=>phase(i).active);
+  const nm=i=>'<b>'+esc(i.name)+'</b>';
+  const gapText=g=>g===0?'aynı saatte':(g<60?g+' dk':(Math.round(g/6)/10)+' saat')+' arayla';
+  SEP.forEach(([a,b,min,why])=>{
+    act.filter(i=>i.key===a).forEach(A=>act.filter(i=>i.key===b).forEach(B=>{
+      const g=Math.abs(toMin(timeOf(A))-toMin(timeOf(B)));
+      if(g<min)out.push({lvl:'bad',ids:[A.id,B.id],t:nm(A)+' ve '+nm(B)+' '+gapText(g)+' alınıyor. '+why+', en az '+min/60+' saat ara bırak.'});
+    }));
+  });
+  SOFT.forEach(([a,b,why])=>{
+    act.filter(i=>i.key===a).forEach(A=>act.filter(i=>i.key===b).forEach(B=>{
+      out.push({lvl:'soft',ids:[A.id,B.id],t:nm(A)+' ile '+nm(B)+' birlikte kullanılıyor. '+why+'.'});
+    }));
+  });
+  GOOD.forEach(([a,b,why])=>{
+    act.filter(i=>i.key===a).forEach(A=>act.filter(i=>i.key===b).forEach(B=>{
+      if(Math.abs(toMin(timeOf(A))-toMin(timeOf(B)))<=60)out.push({lvl:'good',ids:[A.id,B.id],t:nm(A)+' + '+nm(B)+': '+why+'.'});
+    }));
+  });
+  items.forEach(i=>{
+    const d=info(i),ph=phase(i),tm=toMin(timeOf(i));
+    if(ph.active&&d.eve&&tm>=17*60)out.push({lvl:'soft',ids:[i.id],t:nm(i)+' uyarıcı etki yapabilir. Akşam yerine sabah veya öğlen al.'});
+    if(ph.active&&d.night&&tm<20*60)out.push({lvl:'soft',ids:[i.id],t:nm(i)+' uyku öncesi alınmalı. Saati yatmadan önceye çek.'});
+    if(i.cyc&&i.cyc.on&&i.cyc.off){
+      if(!ph.active)out.push({lvl:'info',ids:[i.id],t:nm(i)+' ara döneminde, bugün alma. '+ph.back+' gün sonra devam.'});
+      else if(ph.left===1)out.push({lvl:'info',ids:[i.id],t:nm(i)+' için bugün son gün, yarın '+i.cyc.off+' günlük ara başlıyor.'});
+      else if(ph.left<=3)out.push({lvl:'info',ids:[i.id],t:nm(i)+' için ara dönemine '+ph.left+' gün kaldı.'});
+    }
+  });
+  return out;
+}
+const ICON={bad:'⚠',soft:'!',good:'✓',info:'i'};
+const warnHtml=w=>'<div class="warn '+w.lvl+'" role="note"><b aria-hidden="true">'+ICON[w.lvl]+'</b><span>'+w.t+'</span></div>';
+
+/* ---------- Ana ekran ---------- */
+let expId=null,delId=null;
+const streak=()=>{
+  let n=0,d=new Date();
+  const full=day=>{const a=S.items.filter(i=>phase(i).active);return a.length&&a.every(i=>isDone(day,i.id))};
+  if(!full(ymd(d)))d.setDate(d.getDate()-1);
+  while(full(ymd(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+};
+function foodMeta(i){const d=info(i),f=FOOD[d.f]||FOOD.any;return '<span class="tag '+f[1]+'">'+f[0]+'</span>'+(d.fn?'<span>'+esc(d.fn)+'</span>':'')}
+
+function render(){
+  const now=new Date(),t=todayKey(),nowMin=now.getHours()*60+now.getMinutes();
+  $('date').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+  const act=S.items.filter(i=>phase(i).active),brk=S.items.filter(i=>!phase(i).active);
+  const done=act.filter(i=>isDone(t,i.id)).length,total=act.length,p=total?Math.round(done/total*100):0;
+  $('pct').textContent=p+'%';
+  $('arc').setAttribute('stroke-dashoffset',201.06*(1-p/100));
+  const s=streak();
+  $('sumMain').textContent=!S.items.length?'Vitamin ekleyerek başla':(!total?'Bugün alınacak yok':(done===total?'Hepsi tamam':done+' / '+total+' alındı'));
+  $('sumSub').textContent=s>0?s+' gün üst üste':'Seri bugün başlıyor';
+
+  const ws=analyze(S.items),order={bad:0,soft:1,info:2,good:3};
+  ws.sort((a,b)=>order[a.lvl]-order[b.lvl]);
+  $('warnCard').hidden=!ws.length;
+  $('warns').innerHTML=ws.map(warnHtml).join('');
+
+  let h='';
+  SLOTS.forEach(([k,label])=>{
+    const its=act.filter(i=>i.slot===k).sort((a,b)=>toMin(timeOf(a))-toMin(timeOf(b)));
+    if(!its.length)return;
+    h+='<div class="slot"><div class="slot-name">'+label+'</div>';
+    its.forEach(i=>{
+      const d=isDone(t,i.id),late=!d&&toMin(timeOf(i))<=nowMin;
+      h+='<div class="item'+(d?' done':'')+'" role="checkbox" aria-checked="'+d+'" tabindex="0" data-act="tog" data-id="'+i.id+'">'+
+        '<span class="chk">✓</span><span class="grow"><span class="nm">'+esc(i.name)+'</span>'+(i.dose?' <span class="note">'+esc(i.dose)+'</span>':'')+'<span class="meta">'+foodMeta(i)+'</span></span>'+
+        '<span class="time'+(late?' late':'')+'">'+timeOf(i)+'</span></div>';
+    });
+    h+='</div>';
+  });
+  if(brk.length){
+    h+='<div class="slot"><div class="slot-name">Ara dönemi, bugün alma</div>';
+    brk.forEach(i=>{h+='<div class="item" style="cursor:default;opacity:.75"><span class="grow"><span class="nm">'+esc(i.name)+'</span><span class="meta">'+phase(i).back+' gün sonra devam</span></span></div>'});
+    h+='</div>';
+  }
+  $('today').innerHTML=h||'<div class="empty">Henüz vitamin yok. Aşağıdan ekle.</div>';
+
+  let w='';
+  for(let k=6;k>=0;k--){
+    const d=new Date();d.setDate(d.getDate()-k);const key=ymd(d);
+    const c=act.filter(i=>isDone(key,i.id)).length,hh=total?Math.min(100,Math.round(c/total*100)):0;
+    w+='<div class="day'+(k===0?' today':'')+'"><div class="bar" title="'+c+' / '+total+'"><i style="height:'+hh+'%"></i></div>'+d.toLocaleDateString('tr-TR',{weekday:'short'}).slice(0,3)+'</div>';
+  }
+  $('week').innerHTML=w;
+
+  let m='';
+  S.items.forEach(i=>{
+    const d=info(i),open=expId===i.id,conf=delId===i.id;
+    m+='<div class="row" style="flex-wrap:wrap"><button class="ghost" style="border:0;text-align:left;flex:1;min-width:0;padding-left:0" data-act="exp" data-id="'+i.id+'" aria-expanded="'+open+'"><b>'+esc(i.name)+'</b><span class="note"> · '+timeOf(i)+(i.cyc&&i.cyc.on?' · '+i.cyc.on+' gün kullan, '+i.cyc.off+' gün ara':'')+'</span></button>'+
+      '<button class="ghost'+(conf?' danger':'')+'" data-act="del" data-id="'+i.id+'" aria-label="'+esc(i.name)+' sil">'+(conf?'Silmek için tekrar dokun':'Sil')+'</button>';
+    if(open){
+      m+='<div class="panel" style="width:100%"><div class="full meta" style="margin:0">'+foodMeta(i)+'</div>'+
+        (d.tip?'<div class="full note">İpucu: '+esc(d.tip)+'</div>':'')+(d.w?'<div class="full note">Dikkat: '+esc(d.w)+'</div>':'')+
+        '<label>Zaman<select data-f="slot" data-id="'+i.id+'">'+SLOTS.map(x=>'<option value="'+x[0]+'"'+(i.slot===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
+        (i.slot==='ozel'?'<label>Saat<input type="time" data-f="time" data-id="'+i.id+'" value="'+timeOf(i)+'"></label>':'<span></span>')+
+        '<label>Kullan (gün)<input type="number" min="1" inputmode="numeric" data-f="on" data-id="'+i.id+'" value="'+(i.cyc?i.cyc.on:'')+'" placeholder="Süresiz"></label>'+
+        '<label>Ara ver (gün)<input type="number" min="1" inputmode="numeric" data-f="off" data-id="'+i.id+'" value="'+(i.cyc?i.cyc.off:'')+'" placeholder="-"></label>'+
+        (i.cyc&&i.cyc.on?'<button class="ghost full" data-act="restart" data-id="'+i.id+'">Döngüyü bugün başlat</button>':'')+'</div>';
+    }
+    m+='</div>';
+  });
+  $('manage').innerHTML=m||'<div class="empty">Liste boş.</div>';
+
+  $('sRemind').checked=!!S.settings.remind;
+  ['sabah','ogle','aksam','gece'].forEach(k=>{$('t'+k).value=S.settings.times[k]});
+  renderDraftWarn();
+}
+
+/* ---------- İşlemler ---------- */
+function toggle(id){
+  const t=todayKey();S.log[t]=S.log[t]||{};
+  if(S.log[t][id])delete S.log[t][id];else S.log[t][id]=1;
+  save();render();renderToasts();
+}
+const getItem=id=>S.items.find(i=>i.id===id);
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const id=+el.dataset.id,a=el.dataset.act;
+  if(a==='tog')toggle(id);
+  else if(a==='exp'){expId=expId===id?null:id;render()}
+  else if(a==='del'){if(delId===id){S.items=S.items.filter(i=>i.id!==id);delId=null;expId=null;save()}else delId=id;render()}
+  else if(a==='restart'){getItem(id).cyc.start=todayKey();save();render()}
+  else if(a==='pick')pickDb(el.dataset.k);
+  else if(a==='custom')pickCustom(el.dataset.name);
+  else if(a==='toastdone'){dismiss(el.dataset.tid);if(!isDone(todayKey(),id))toggle(id)}
+  else if(a==='toastx')dismiss(el.dataset.tid);
+});
+document.addEventListener('keydown',e=>{
+  if((e.key===' '||e.key==='Enter')&&e.target.matches('.item[data-act="tog"]')){e.preventDefault();toggle(+e.target.dataset.id)}
+});
+document.addEventListener('change',e=>{
+  const el=e.target.closest('[data-f]');if(!el)return;
+  const f=el.dataset.f,i=getItem(+el.dataset.id);if(!i)return;
+  if(f==='slot'){i.slot=el.value;if(i.slot==='ozel'&&!i.time)i.time='09:00'}
+  else if(f==='time')i.time=el.value||'09:00';
+  else if(f==='on'||f==='off'){
+    const on=+(document.querySelector('[data-f="on"][data-id="'+i.id+'"]').value)||0,off=+(document.querySelector('[data-f="off"][data-id="'+i.id+'"]').value)||0;
+    i.cyc=on&&off?{on,off,start:(i.cyc&&i.cyc.start)||todayKey()}:null;
+  }
+  else if(f==='st'){S.settings.times[el.dataset.slot]=el.value||S.settings.times[el.dataset.slot]}
+  save();render();
+});
+['sabah','ogle','aksam','gece'].forEach(k=>$('t'+k).addEventListener('change',e=>{S.settings.times[k]=e.target.value||S.settings.times[k];save();render()}));
+$('sRemind').addEventListener('change',e=>{
+  S.settings.remind=e.target.checked;save();
+  if(e.target.checked){try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission()}catch(x){}}
+});
+
+/* ---------- Ekleme akışı ---------- */
+let sel=null;
+const POP=['vitd','vitc','mag','omega3','iron','zinc','ginseng','rhodiola'];
+function renderSugg(){
+  const q=norm($('q').value.trim());let h='';
+  if(!q){h=POP.map(k=>'<button class="chip" data-act="pick" data-k="'+k+'">'+esc(DBK[k].n)+'</button>').join('')}
+  else{
+    DB.filter(d=>norm(d.n+' '+d.a).includes(q)).slice(0,8).forEach(d=>{h+='<button class="chip" data-act="pick" data-k="'+d.k+'">'+esc(d.n)+'</button>'});
+    h+='<button class="chip" data-act="custom" data-name="'+esc($('q').value.trim())+'">Listede yok, "'+esc($('q').value.trim())+'" olarak ekle</button>';
+  }
+  $('sugg').innerHTML=h;
+}
+$('q').addEventListener('input',renderSugg);
+function openDraft(){
+  $('draft').hidden=false;
+  $('dName').textContent=sel.name;
+  $('dTimeWrap').hidden=$('dSlot').value!=='ozel';
+  $('dFoodWrap').hidden=!!sel.key;
+  const d=sel.key?DBK[sel.key]:null;let h='';
+  if(d){const f=FOOD[d.f];h='<div class="meta"><span class="tag '+f[1]+'">'+f[0]+'</span><span>'+esc(d.fn)+'</span></div>'+
+    (d.tip?'<div class="note" style="margin-top:6px">İpucu: '+esc(d.tip)+'</div>':'')+(d.w?'<div class="note" style="margin-top:6px">Dikkat: '+esc(d.w)+'</div>':'')+
+    (d.c?'<div class="note" style="margin-top:6px">Önerilen döngü: '+d.c[0]+' gün kullan, '+d.c[1]+' gün ara. Aşağıdan değiştirebilirsin.</div>':'')}
+  else h='<div class="note">Bu ürün listede yok. Nasıl alınacağını ve istersen kullan/ara döngüsünü kendin gir.</div>';
+  $('dInfo').innerHTML=h;
+  renderDraftWarn();
+}
+function pickDb(k){
+  const d=DBK[k];sel={key:k,name:d.n};
+  $('dSlot').value=d.s;$('dOn').value=d.c?d.c[0]:'';$('dOff').value=d.c?d.c[1]:'';$('dDose').value='';
+  $('q').value=d.n;$('sugg').innerHTML='';openDraft();
+}
+function pickCustom(name){
+  if(!name)return;sel={key:null,name};
+  $('dSlot').value='sabah';$('dOn').value='';$('dOff').value='';$('dDose').value='';$('dFood').value='any';
+  $('sugg').innerHTML='';openDraft();
+}
+function draftItem(){
+  const on=+$('dOn').value||0,off=+$('dOff').value||0;
+  return{id:0,key:sel.key,name:sel.name,dose:$('dDose').value.trim(),slot:$('dSlot').value,time:$('dTime').value||'09:00',food:$('dFood').value,
+    cyc:on&&off?{on,off,start:todayKey()}:null};
+}
+function renderDraftWarn(){
+  if(!sel||$('draft').hidden)return;
+  const d=draftItem(),ws=analyze(S.items.concat([d])).filter(w=>w.ids.includes(0));
+  $('dWarn').innerHTML=ws.map(warnHtml).join('');
+}
+['dSlot','dTime','dOn','dOff'].forEach(id=>$(id).addEventListener('change',()=>{$('dTimeWrap').hidden=$('dSlot').value!=='ozel';renderDraftWarn()}));
+$('dAdd').addEventListener('click',()=>{
+  if(!sel)return;
+  const d=draftItem();d.id=S.nextId++;
+  S.items.push(d);save();
+  sel=null;$('draft').hidden=true;$('q').value='';renderSugg();render();
+});
+
+/* ---------- Hatırlatıcılar ---------- */
+let toasts=[];
+function renderToasts(){
+  const t=todayKey();
+  toasts=toasts.filter(x=>!isDone(t,x.id)&&getItem(x.id));
+  $('toasts').innerHTML=toasts.map(x=>'<div class="toast" role="alert" style="margin-bottom:8px"><span class="grow">Şimdi: '+esc(x.name)+'</span><button data-act="toastdone" data-id="'+x.id+'" data-tid="'+x.tid+'">Aldım</button><button data-act="toastx" data-tid="'+x.tid+'" aria-label="Kapat">✕</button></div>').join('');
+}
+function dismiss(tid){toasts=toasts.filter(x=>x.tid!==tid);renderToasts()}
+function tick(){
+  const now=new Date(),t=todayKey(),cur=hm(now);let changed=false;
+  Object.keys(S.fired).forEach(k=>{if(!k.startsWith(t)){delete S.fired[k];changed=true}});
+  if(S.settings.remind){
+    S.items.forEach(i=>{
+      if(!phase(i).active||isDone(t,i.id)||timeOf(i)!==cur)return;
+      const fk=t+'|'+i.id+'|'+cur;if(S.fired[fk])return;
+      S.fired[fk]=1;changed=true;
+      toasts.push({id:i.id,name:i.name+(i.dose?' ('+i.dose+')':'')+' · '+(FOOD[info(i).f]||FOOD.any)[0],tid:fk});
+      try{if(window.Notification&&Notification.permission==='granted')new Notification('Vitamin zamanı',{body:i.name})}catch(x){}
+    });
+  }
+  if(changed)save();
+  renderToasts();render();
+}
+setInterval(tick,20000);
+renderSugg();render();tick();
+try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js")}catch(e){}
+</script>
+</body>
+</html>
